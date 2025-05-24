@@ -3,21 +3,17 @@ import json
 import pathlib
 import re
 from openai import OpenAI
-import colorama
 from PyQt6.QtCore import QThread, pyqtSignal
 from .test_api import MockAIResponse
 from .prompt import PROMPT_EN, PROMPT_CH
 from .file_processor import FileProcessor
 
-# 初始化颜色库（用于跨平台ANSI控制）
-colorama.init()
-
-TEST_MODE = False # 是否处于测试状态
+TEST_MODE = True # 是否处于测试状态
 SHOW_CMD = False # 是否显示json指令
-HISTORY_FILE = "chat/chat_history.json" # 聊天历史文件
+HISTORY_FILE = "chat_history.json" # 聊天历史文件
 
 # 配置信息
-token = "12345"  # API 密钥
+token = ""  # API 密钥
 endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
 TEMP_RESPONSE = 0.7 # 正常回复的温度
@@ -89,6 +85,7 @@ class AIChat(QThread):
     def __init__(self, user_input):
         super().__init__()
         self.user_input = user_input
+        self._stop_flag = False
 
     def run(self):
         try:
@@ -112,6 +109,8 @@ class AIChat(QThread):
             is_json_response = False
             json_braces = 0
             for chunk in response_stream:
+                if self._stop_flag:  # 检查停止标志
+                    break
                 if chunk.choices and (content := chunk.choices[0].delta.content):
                     # 阶段1：收集普通文本或检测JSON开始
                     if not is_json_response:
@@ -137,30 +136,47 @@ class AIChat(QThread):
 
                         # 当检测到完整JSON时处理
                         if json_braces == 0:
-                            # 执行命令并生成反馈
                             full_json = ''.join(buffer)
-                            feedback, _ = self._execute_command(full_json)
-                            natural_feedback = self._generate_feedback(feedback)
-
-                            # 合并待处理文本和自然反馈
-                            if SHOW_CMD:
-                                self.response_received.emit(f"{full_json}\n", False)
-                                full_message = ''.join(pending_text) + f"{full_json}\n" + natural_feedback
+                            if self._is_valid_command(full_json):  # 新增校验
+                                # 执行命令并生成反馈
+                                feedback, _ = self._execute_command(full_json)
+                                natural_feedback = self._generate_feedback(feedback)
+                                # 合并待处理文本和自然反馈
+                                if SHOW_CMD:
+                                    self.response_received.emit(f"{full_json}\n", False)
+                                    full_message = ''.join(pending_text) + f"{full_json}\n" + natural_feedback
+                                else:
+                                    full_message = ''.join(pending_text) + natural_feedback
+                                # 更新聊天记录
+                                conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message
+                                })
+                                save_history()
+                                # 发送最终反馈并清空缓存
+                                self.response_received.emit(natural_feedback, False)
+                                self.response_received.emit("", True)
                             else:
-                                full_message = ''.join(pending_text) + natural_feedback
+                                # 无效指令作为普通文本处理
+                                pending_text.append(full_json)
+                                self.response_received.emit(full_json, False)
 
-                            # 更新聊天记录（替换临时内容）
-                            conversation_history.append({
-                                "role": "assistant",
-                                "content": full_message
-                            })
-                            save_history()
-
-                            # 发送最终反馈并清空缓存
-                            self.response_received.emit(natural_feedback, False)
-                            self.response_received.emit("", True)
+                            # 重置状态
                             pending_text = []
                             is_json_response = False
+
+            # 处理中途停止的情况
+            if self._stop_flag:
+                self.response_received.emit("", True)
+                text = ""
+                for msg in pending_text:
+                    text += msg
+                conversation_history.append({
+                    "role": "assistant",
+                    "content": text
+                })
+                save_history()
+                return
 
             # 处理纯文本响应（无JSON）
             if not is_json_response and pending_text:
@@ -175,6 +191,18 @@ class AIChat(QThread):
         except Exception as e:
             self.error_occurred.emit(str(e))
 
+    def _is_valid_command(self, json_str):
+        """验证是否为有效指令"""
+        try:
+            command = json.loads(json_str)
+            if isinstance(command, dict):
+                allowed_actions = {'open_browser', 'open_file', 'open_folder',
+                                 'find_file', 'read_file'}
+                return command.get('action') in allowed_actions
+            return False
+        except json.JSONDecodeError:
+            return False
+
     def _execute_command(self, full_response):
         """解析并执行JSON指令, 返回 (反馈信息, 需要清除的行数)"""
         try:
@@ -182,7 +210,7 @@ class AIChat(QThread):
             json_matches = re.findall(r'\{.*?\}(?=\s*(?:\{|\Z))', full_response, re.DOTALL)
             if not json_matches:
                 return "No valid JSON command found in response", 0
-            # 取最后一个有效JSON（适应多次响应的情况）
+            # 取最后一个有效JSON（适应多JSON指令情况）
             last_json = json_matches[-1]
             command = json.loads(last_json)
 
@@ -277,11 +305,10 @@ class AIChat(QThread):
         try:
             for path in root_dir.glob('**/*'):
                 if pattern.lower() in path.name.lower():
-                    print(path.name.lower())
                     matches.append(path)
                     if len(matches) >= 5: break
                 # 限制搜索深度
-                if len(path.parent.parts) - len(root_dir.parts) > 1000000:
+                if len(path.parent.parts) - len(root_dir.parts) > 3:
                     continue
         except Exception as e:
             print(f"Search error in {root_dir}: {str(e)}")
@@ -313,3 +340,4 @@ class AIChat(QThread):
         except Exception as e:
             error_msg = f"Failed to generate response：{str(e)}"
             self.response_received.emit(f"\n{error_msg}", True)
+

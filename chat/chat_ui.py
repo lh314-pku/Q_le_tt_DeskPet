@@ -55,15 +55,21 @@ class Ui_MainWindow(object):
 
         # 创建发送按钮
         self.sendButton = QtWidgets.QPushButton()
-        self.sendButton.setText("↑")
         self.sendButton.setFixedSize(50, 40)  # 设置按钮固定大小
+        self.sendButton.setIcon(QtGui.QIcon("./chat/imgs/send.svg")) # 设置图标
         self.sendButton.setToolTip("发送消息")  # 设置提示文本
 
+        # 创建停止按钮
+        self.stopButton = QtWidgets.QPushButton()
+        self.stopButton.setFixedSize(50, 40)
+        self.stopButton.setIcon(QtGui.QIcon("./chat/imgs/pause.svg"))
+        self.stopButton.setToolTip("停止生成")
+
         # 创建清空按钮
-        self.clearButton = QtWidgets.QPushButton()  # 清空聊天按钮
-        self.clearButton.setFixedSize(50, 40)  # 设置按钮大小为 (50, 40)
-        self.clearButton.setIcon(QtGui.QIcon("./chat/imgs/trash.svg"))  # 设置图标
-        self.clearButton.setToolTip("清空聊天记录")  # 设置提示文本
+        self.clearButton = QtWidgets.QPushButton()
+        self.clearButton.setFixedSize(45, 35)
+        self.clearButton.setIcon(QtGui.QIcon("./chat/imgs/trash.svg"))
+        self.clearButton.setToolTip("清空聊天记录")
         self.clearButton.setStyleSheet(
             """
             QPushButton {
@@ -79,15 +85,15 @@ class Ui_MainWindow(object):
             }
             """
         )
-
         # 添加到底部布局中，发送按钮左边
         self.bottom_layout.insertWidget(0, self.clearButton)  # 插入到布局的最左边
 
         # 添加到布局中
         self.input_layout.addWidget(self.inputEdit)  # 输入框占整行
         self.bottom_layout.addStretch()  # 添加弹性空间，保证按钮在右侧
+        self.bottom_layout.addWidget(self.stopButton)
         self.bottom_layout.addWidget(self.sendButton)
-        self.input_layout.addLayout(self.bottom_layout)  # 添加底部布局
+        self.input_layout.addLayout(self.bottom_layout)
 
         # 将组件添加到分割器
         self.splitter.addWidget(self.chatHistory)

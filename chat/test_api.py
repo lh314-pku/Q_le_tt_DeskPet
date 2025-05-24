@@ -19,14 +19,14 @@ class MockAIResponse:
         )
 
     def generate_stream(self):
-        # markdown文本
+        # markdown文本与非指令json
         if self.mode == "0":
             chunks = [
-                'This is a ** Markdown ** message!',
-                '\n```python',
-                '\n def hello_world():',
-                '\n     print("Hello, world!")',
-                '\n```',
+                'This is a ** Markdown ** message!\n',
+                '```json\n',
+                '{\n"name": "Alice",\n',
+                '"hobbies": ["reading", "traveling", "gaming"]\n}',
+                '```',
             ]
             for chunk in chunks:
                 yield self._create_chunk(chunk)
