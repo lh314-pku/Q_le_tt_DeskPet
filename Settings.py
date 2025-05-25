@@ -13,7 +13,7 @@ class SettingsManager(QWidget):  # 改成继承 QWidget
 
         # 设置窗口标题和大小
         self.setWindowTitle("Settings")
-        self.setFixedSize(300, 200)
+        self.setFixedSize(800, 600)
 
         # 创建布局
         self.layout = QVBoxLayout(self)
@@ -24,8 +24,9 @@ class SettingsManager(QWidget):  # 改成继承 QWidget
         self.layout.addWidget(self.color_button)
 
         # 添加一个示例标签，可以显示当前颜色 (Optional)
-        self.color_label = QLabel("No Color Selected", self)
-        self.layout.addWidget(self.color_label)
+        self.API_button = QPushButton("Setting API", self)
+        self.color_button.clicked.connect(self.set_API)
+        self.layout.addWidget(self.API_button)
 
         # 其他设置按钮 (根据需求添加更多设置内容)
         self.reset_button = QPushButton("Reset to Default", self)
@@ -44,3 +45,7 @@ class SettingsManager(QWidget):  # 改成继承 QWidget
         """重置 GIF 或窗口状态为默认值"""
         self.color_label.setText("No Color Selected")
         self.window.set_gif_color("#FFFFFF")  # 假设重置为白色 (根据你需求定制)
+
+    def set_API(self):
+        """设置聊天接入的API"""
+        pass
