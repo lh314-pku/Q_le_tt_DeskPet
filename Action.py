@@ -130,7 +130,7 @@ class ActionManager:
         self.move_timer.stop()
 
     def move_window(self):
-        """实现窗口的反弹移动逻辑并调整 GIF 方向"""
+        """实现窗口的移动逻辑，使得窗口到达右边界时从左边界重新出现"""
         # 检查窗口和速度对象的完整性
         if not hasattr(self, 'window') or self.window is None:
             raise AttributeError("The 'window' object is not initialized.")
@@ -142,39 +142,23 @@ class ActionManager:
         new_y = current_pos.y() + self.current_speed.y()
         screen = self.window.screen().availableGeometry()
 
-        # 检查水平边界，并翻转 GIF
-        if new_x <= screen.left() or new_x + self.window.width() >= screen.right():
-            self.current_speed.setX(-self.current_speed.x())  # 反向 X 轴方向
-            self.flip_gif(horizontal=True)  # 水平翻转 GIF
+        # 水平方向：如果到达右边界，从左边界重新出现
+        if new_x >= screen.right():
+        # if new_x + self.window.width() >= screen.right():
+            new_x = screen.left()
 
-        # 检查垂直边界，不需要翻转 GIF 的方向
+        # 垂直边界逻辑（如果需要）
         if new_y <= screen.top() or new_y + self.window.height() >= screen.bottom():
             self.current_speed.setY(-self.current_speed.y())  # 反向 Y 轴方向
 
-        # 移动窗口
-        self.window.move(current_pos + self.current_speed)
+        # 移动窗口到新的位置
+        self.window.move(QPoint(new_x, new_y))
 
     def flip_gif(self, horizontal=False, vertical=False):
         """
-        翻转 GIF 的方向。
-        :param horizontal: 是否水平翻转 (默认 False)。
-        :param vertical: 是否垂直翻转 (默认 False)。
+        替换后的 `flip_gif` 函数不再进行翻转操作，仅保留占位。
         """
-        # 检查目标对象是否支持 setTransform
-        #if not hasattr(self.window.label, "setTransform"):
-        #    raise AttributeError("Target object does not support transformation")
-
-        # 计算翻转比例
-        scale_x = -1 if horizontal else 1
-        scale_y = -1 if vertical else 1
-
-        # 获取已有的变换，应用翻转
-        transform = QTransform()
-        transform.scale(-1,1)
-        # transform.reset()  # 如果需要保留其他变换，可以移除此行
-
-        # 设置变换
-        self.window.label.setTransform(transform)
+        pass  # 由于要求不再翻转 GIF，此处留空
 
     def init_tray_icon(self):
         """初始化托盘图标"""
