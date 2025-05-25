@@ -13,7 +13,7 @@ SHOW_CMD = False # 是否显示json指令
 HISTORY_FILE = "chat_history.json" # 聊天历史文件
 
 # 配置信息
-token = "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"  # API 密钥
+token = ""  # API 密钥
 endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
 TEMP_RESPONSE = 0.7 # 正常回复的温度
