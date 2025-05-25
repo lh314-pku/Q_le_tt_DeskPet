@@ -13,3 +13,15 @@
 [PyCharm配置pyqt6](https://www.cnblogs.com/ElaineTiger/p/18138076)
 
 [PyQt/PySide6快速入门](https://zhuanlan.zhihu.com/p/520606210)
+
+---
+
+项目内容注意事项：
+
+1. 进行chat测试时，记得`token`完整，且`TEST_MODE`为`False`。（详情见文件`chat/ai_assistant.py`）
+
+2. `setting`界面的排版布局还在调整，敬请期待。~~其实就是还在学怎么排版~~
+
+3. 预计实现`prompt`的自定义，详见`chat/prompt.py`
+
+4. ~~我是绝对不会告诉你这个API是从哪来的的~~
