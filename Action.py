@@ -1,7 +1,7 @@
 from PyQt6.QtGui import QAction, QCursor, QTransform
 from PyQt6.QtCore import QTimer, QPoint, Qt
 from PyQt6.QtWidgets import QMenu, QColorDialog, QSystemTrayIcon, QApplication
-
+from Settings import SettingsManager  # 引入新的设置管理器
 
 class ActionManager:
     def __init__(self, window):
@@ -29,42 +29,46 @@ class ActionManager:
         self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
         self.talk_gif_path = "./src/talk.gif"  # Talk 动画路径
 
+        # 初始化设置窗口
+        self.settings_window = SettingsManager(self.window)
         # 初始化右键菜单
         self.init_context_menu()
         # 初始化托盘图标
         self.init_tray_icon()
 
+
     def init_context_menu(self):
         """初始化右键菜单"""
         self.context_menu = QMenu(self.window)
-
         # 创建 "Action" 子菜单
         self.action_menu = QMenu("Action", self.context_menu)  # Action 菜单
-
         # 添加动作到 Action 子菜单
         for action_name in self.actions_config.keys():
             action = QAction(action_name, self.window)
             action.triggered.connect(lambda _, act=action_name: self.perform_action(act))
             self.action_menu.addAction(action)
-
         # 其它菜单选项
         self.talk_action = QAction("Talk", self.window)  # 保持 Talk 独立
-        self.change_color = QAction("Change Color", self.window)
         self.minimize_to_tray_action = QAction("Minimize to Tray", self.window)
         self.exit_action = QAction("Exit", self.window)
-
+        self.settings_action = QAction("Settings", self.window)
         # 与槽函数关联
         self.talk_action.triggered.connect(self.show_talk_text)
-        self.change_color.triggered.connect(self.open_color_picker)
         self.minimize_to_tray_action.triggered.connect(self.minimize_to_tray)
         self.exit_action.triggered.connect(self.window.close)
-
+        self.settings_action.triggered.connect(self.open_settings_window)  # 设置打开窗口的行为
         # 添加到右键菜单
         self.context_menu.addMenu(self.action_menu)  # 添加 Action 菜单
-        self.context_menu.addAction(self.talk_action)  # Talk 保持在主菜单
-        self.context_menu.addAction(self.change_color)
+        self.context_menu.addAction(self.settings_action)
+        self.context_menu.addAction(self.talk_action)
         self.context_menu.addAction(self.minimize_to_tray_action)
         self.context_menu.addAction(self.exit_action)
+        self.context_menu.addSeparator()
+
+    def open_settings_window(self):
+        """打开设置窗口"""
+        self.settings_window.show()  # 显示设置窗口
+        self.settings_window.raise_()  # 将窗口置于最前方
 
     def perform_action(self, action_name):
         """执行指定动作"""

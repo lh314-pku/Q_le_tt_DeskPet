@@ -8,12 +8,12 @@ from .test_api import MockAIResponse
 from .prompt import PROMPT_EN, PROMPT_CH
 from .file_processor import FileProcessor
 
-TEST_MODE = True # 是否处于测试状态
+TEST_MODE = False# 是否处于测试状态
 SHOW_CMD = False # 是否显示json指令
 HISTORY_FILE = "chat_history.json" # 聊天历史文件
 
 # 配置信息
-token = ""  # API 密钥
+token = "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"  # API 密钥
 endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
 TEMP_RESPONSE = 0.7 # 正常回复的温度
