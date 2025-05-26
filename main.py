@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtCore import Qt, QSize, QPoint
+from PyQt6.QtCore import Qt, QSize, QPoint, QTimer
 from PyQt6.QtGui import QMovie, QColor, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QGraphicsColorizeEffect
 from Action import ActionManager
@@ -13,6 +13,12 @@ class MyMainWindow(QMainWindow):
         self.setWindowTitle("My Application")  # 设置窗口标题
         self.action_manager = ActionManager(self)  # 引入动作管理器
         self.action_manager.switch_to_default_gif()  # 默认设置待机动画
+        
+        # 添加点击计数器和点击间隔时间控制器（lrq, 5.26）
+        self.drag_threshold = 1  # 拖动判断阈值（像素）
+        self.press_pos = QPoint()  # 记录按下时的坐标
+        self.is_dragging = False   # 拖动状态标记
+
 
     def initUI(self):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
@@ -66,17 +72,39 @@ class MyMainWindow(QMainWindow):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.offset = event.globalPosition().toPoint() - self.pos()
+            # 记录按下时的全局坐标
+            self.press_pos = event.globalPosition().toPoint()
+            # 初始化拖动相关参数
+            self.offset = self.press_pos - self.pos()
+            # 重置状态
+            self.is_dragging = False
             event.accept()
+
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MouseButton.LeftButton and self.offset is not None:
-            self.move(event.globalPosition().toPoint() - self.offset)
+            # 计算移动距离
+            current_pos = event.globalPosition().toPoint()
+            move_distance = (current_pos - self.press_pos).manhattanLength()
+            
+            if move_distance > self.drag_threshold:
+                # 超过阈值视为拖动
+                if not self.is_dragging:
+                    self.action_manager.perform_no_menu_action("Drag")
+                self.is_dragging = True
+                self.move(current_pos - self.offset)
+
             event.accept()
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.offset = None
+            if not self.is_dragging:
+                # 点击立即响应
+                self.action_manager.perform_no_menu_action("Hit")
+            else:
+                self.action_manager.perform_no_menu_action("Drag_over")
+            self.is_dragging = False
             event.accept()
 
     def contextMenuEvent(self, event):

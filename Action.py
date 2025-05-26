@@ -11,9 +11,10 @@ class ActionManager:
         """
         self.window = window
         self.tray_icon = None  # 初始化托盘图标变量
-        self.direction = QPoint(1, 0)  # 初始方向 ？？干什么用的
+        self.direction = QPoint(1, 0)  # 初始方向
         self.move_timer = QTimer()  # 移动计时器
         self.action_timer = QTimer()  # 用于设置限时动作的定时器
+        self.action_timer.setSingleShot(True)  # 设置为单次模式
         self.is_in_action = False  # 标记是否当前处于动作中
 
         # 移动速度设置
@@ -22,10 +23,17 @@ class ActionManager:
         self.current_speed = self.walk_speed  # 默认速度是 Walk 的速度
 
         # 封装动作与 GIF 的映射关系以及动画时长
-        self.actions_config = {
+        self.actions_config = { # 这些动作会显示在右键菜单
             "Walk": {"gif": "./src/walk.gif", "duration": 5000},
             "Run": {"gif": "./src/run.gif", "duration": 5000},
         }
+        self.no_menu_actions_config = { # 这些动作不会显示在右键菜单
+            "Hit": {"gif": "./src/hit.gif", "duration": 500},
+            "Drag": {"gif": "./src/drag.gif", "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
+            "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000} # 拖动结束的跌落动作。
+            # 注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
+        }
+
         self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
         self.talk_gif_path = "./src/talk.gif"  # Talk 动画路径
 
@@ -71,11 +79,8 @@ class ActionManager:
         self.settings_window.raise_()  # 将窗口置于最前方
 
     def perform_action(self, action_name):
-        """执行指定动作"""
-        # if self.is_in_action:
-        #     self.window.show_text_box("Action in progress")
-        #     return
-        self.end_action() ## 先停止当前动作
+        """执行菜单动作"""
+        self.end_action() # 立即停止当前动作
 
         # 获取动画配置
         config = self.actions_config[action_name]
@@ -91,30 +96,58 @@ class ActionManager:
         self.start_moving_window()
 
         # 限时恢复
-        self.action_timer.singleShot(config["duration"], self.end_action)
+        self.action_timer.timeout.connect(self.end_action)
+        self.action_timer.start(config["duration"])  # 启动计时
+
+    def perform_no_menu_action(self, action_name):
+        """执行非菜单动作"""
+        self.end_action() # 立即停止当前动作
+        
+        config = self.no_menu_actions_config[action_name]
+        self.is_in_action = True
+        
+        self.window.update_gif(config["gif"])
+
+        if config["duration"] > 0: # duration设为0表示动作一直持续到下一个动作发生
+            # 限时恢复
+            self.action_timer.timeout.connect(self.end_action)
+            self.action_timer.start(config["duration"])
 
 ###########################################################
     def show_talk_text(self):
         """显示对话功能"""
-        # if self.is_in_action:
-        #     return
         self.end_action()
         self.is_in_action = True
         self.window.update_gif(self.talk_gif_path, 80)
         self.window.show_text_box("Hello!")
-        self.action_timer.singleShot(3000, self.end_talk_action)
+        self.action_timer.timeout.connect(self.end_action)
+        self.action_timer.start(3000)
+
         self.window.ai_window.show()
 ###########################################################
-    def end_talk_action(self):
-        """结束对话功能"""
-        self.window.hide_text_box()
-        self.switch_to_default_gif()
-        self.is_in_action = False
+
+    # def end_talk_action(self): # 已与end_action合并，可以这段代码删掉了
+    #     """结束对话功能"""
+    #     self.window.hide_text_box()
+    #     self.switch_to_default_gif()
+    #     self.is_in_action = False
 
     def end_action(self):
         """结束当前动作"""
         if not self.is_in_action:
             return
+        
+        self.window.hide_text_box()
+
+        # 取消前一个定时器
+        if self.action_timer and self.action_timer.isActive():
+            print("计时停止")
+            self.action_timer.stop()
+
+        # 强制重置动画（优化播放流畅度）
+        if self.window.label.movie():
+            self.window.label.movie().stop()
+
         self.stop_moving_window()
         self.switch_to_default_gif()
         self.is_in_action = False
