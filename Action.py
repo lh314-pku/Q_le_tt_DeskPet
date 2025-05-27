@@ -20,9 +20,9 @@ class ActionManager:
         self.is_falling = False # 是否被扔出去了
 
         # 移动速度设置
-        self.walk_right_speed = QPoint(1, 0)  # Walk 时的移动速度
-        self.walk_left_speed = QPoint(-1, 0)
-        self.run_speed = QPoint(3, 0)  # Run 时的移动速度
+        self.walk_right_speed = QPoint(2, 0)  # Walk 时的移动速度
+        self.walk_left_speed = QPoint(-2, 0)
+        self.run_speed = QPoint(5, 0)  # Run 时的移动速度
         self.current_speed = None  #
 
         # 待机时随机移动
@@ -260,6 +260,11 @@ class ActionManager:
 
     def start_moving_window(self):
         """启动窗口移动"""
+        # 先断开之前的连接，避免重复连接导致速度叠加
+        try:
+            self.move_timer.timeout.disconnect()
+        except TypeError:
+            pass  # 如果之前没有连接，忽略错误
         self.move_timer.timeout.connect(self.move_window)
         self.move_timer.start(25)  # 保持定时器更新频率一致，速度差异由 self.current_speed 控制
 

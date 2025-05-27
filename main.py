@@ -10,7 +10,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MyMainWindow, self).__init__(parent)
         self.initUI()
-        self.setWindowIcon(QIcon("./src/icon.png"))
+        self.setWindowIcon(QIcon("./src/stickpet.ico"))
         self.setWindowTitle("My Application")  # 设置窗口标题
         
         self.drag_threshold = 1  # 拖动判断阈值（像素）
