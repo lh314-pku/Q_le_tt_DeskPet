@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QAction, QCursor, QTransform
-from PyQt6.QtCore import QTimer, QPoint, Qt
+from PyQt6.QtCore import QTimer, QPoint, QPointF, Qt
 from PyQt6.QtWidgets import QMenu, QColorDialog, QSystemTrayIcon, QApplication
 from Settings import SettingsManager  # 引入新的设置管理器
 
@@ -18,32 +18,39 @@ class ActionManager:
         self.is_in_action = False  # 标记是否当前处于动作中
 
         # 移动速度设置
-        self.walk_speed = QPoint(2, 0)  # Walk 时的移动速度
+        self.walk_right_speed = QPoint(2, 0)  # Walk 时的移动速度
+        self.walk_left_speed = QPoint(-2, 0)
         self.run_speed = QPoint(6, 0)  # Run 时的移动速度
-        self.current_speed = self.walk_speed  # 默认速度是 Walk 的速度
+        self.current_speed = None  # 
 
         # 封装动作与 GIF 的映射关系以及动画时长
         self.actions_config = { # 这些动作会显示在右键菜单
-            "Walk": {"gif": "./src/walk.gif", "duration": 5000},
+            "Walk_right": {"gif": "./src/walk_right.gif", "duration": 5000},
+            "Walk_left": {"gif": "./src/walk_left.gif", "duration": 5000},
             "Run": {"gif": "./src/run.gif", "duration": 5000},
         }
         self.no_menu_actions_config = { # 这些动作不会显示在右键菜单
             "Hit": {"gif": "./src/hit.gif", "duration": 500},
             "Drag": {"gif": "./src/drag.gif", "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
-            "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000} # 拖动结束的跌落动作。
-            # 注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
+            "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000}, # 拖动结束的跌落动作。注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
+            "Throw": {"gif": "./src/throw.gif", "duration": 0},
+            "Throw_mouse": {"gif": "./src/run.gif", "duration": 500} # 需要动作😊😊
         }
 
         self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
         self.talk_gif_path = "./src/talk.gif"  # Talk 动画路径
 
+        self.throw_speed = QPointF(0, 0)  # 当前抛出速度
+        self.gravity = self.window.gravity
+        self.throw_timer = QTimer()  # 抛出运动定时器
+        self.throw_timer.timeout.connect(self.update_throw_motion)
+ 
         # 初始化设置窗口
         self.settings_window = SettingsManager(self.window)
         # 初始化右键菜单
         self.init_context_menu()
         # 初始化托盘图标
         self.init_tray_icon()
-
 
     def init_context_menu(self):
         """初始化右键菜单"""
@@ -78,7 +85,7 @@ class ActionManager:
         self.settings_window.show()  # 显示设置窗口
         self.settings_window.raise_()  # 将窗口置于最前方
 
-    def perform_action(self, action_name):
+    def perform_action(self, action_name, duration = None):
         """执行菜单动作"""
         self.end_action() # 立即停止当前动作
 
@@ -86,8 +93,10 @@ class ActionManager:
         config = self.actions_config[action_name]
 
         # 根据动作类型设置不同的移动速度
-        if action_name == "Walk":
-            self.current_speed = self.walk_speed
+        if action_name == "Walk_right":
+            self.current_speed = self.walk_right_speed
+        elif action_name == "Walk_left":
+            self.current_speed = self.walk_left_speed
         elif action_name == "Run":
             self.current_speed = self.run_speed
 
@@ -97,7 +106,10 @@ class ActionManager:
 
         # 限时恢复
         self.action_timer.timeout.connect(self.end_action)
-        self.action_timer.start(config["duration"])  # 启动计时
+        if duration:
+            self.action_timer.start(duration)  # 启动计时
+        else:
+            self.action_timer.start(config["duration"])  # 启动计时
 
     def perform_no_menu_action(self, action_name):
         """执行非菜单动作"""
@@ -108,12 +120,23 @@ class ActionManager:
         
         self.window.update_gif(config["gif"])
 
+        if action_name == "Throw_mouse":
+            self.window.mouse_thrower.startThrow()
+            self.window.angry_value = max(0, self.window.angry_value - 2)
+        elif action_name == "Hit":
+            self.window.angry_value = min(10, self.window.angry_value + 1)
+        elif action_name == "Drag_over":
+            self.window.angry_value = max(0, self.window.angry_value - 1)
+        elif action_name == "Throw":
+            self.window.angry_value = min(10, self.window.angry_value + 2)
+
+        # print("Angry Value:", self.window.angry_value)
+
         if config["duration"] > 0: # duration设为0表示动作一直持续到下一个动作发生
             # 限时恢复
             self.action_timer.timeout.connect(self.end_action)
             self.action_timer.start(config["duration"])
 
-###########################################################
     def show_talk_text(self):
         """显示对话功能"""
         self.end_action()
@@ -124,13 +147,6 @@ class ActionManager:
         self.action_timer.start(3000)
 
         self.window.ai_window.show()
-###########################################################
-
-    # def end_talk_action(self): # 已与end_action合并，可以这段代码删掉了
-    #     """结束对话功能"""
-    #     self.window.hide_text_box()
-    #     self.switch_to_default_gif()
-    #     self.is_in_action = False
 
     def end_action(self):
         """结束当前动作"""
@@ -141,7 +157,6 @@ class ActionManager:
 
         # 取消前一个定时器
         if self.action_timer and self.action_timer.isActive():
-            print("计时停止")
             self.action_timer.stop()
 
         # 强制重置动画（优化播放流畅度）
@@ -151,6 +166,51 @@ class ActionManager:
         self.stop_moving_window()
         self.switch_to_default_gif()
         self.is_in_action = False
+
+    def handle_throw(self, initial_velocity):
+        """处理抛出动作"""
+        self.end_action()
+        # 播放抛出动画
+        self.perform_no_menu_action("Throw")
+        # 设置初速度
+        self.throw_speed = initial_velocity
+        # 启动抛体运动定时器
+        self.throw_timer.start(16)  # ~60fps
+
+    def update_throw_motion(self):
+        """更新抛体运动位置"""
+        # 应用重力加速度
+        self.throw_speed.setY(self.throw_speed.y() + self.gravity * 0.016)  # delta_time=0.016s
+        
+        # 计算新位置
+        current_pos = self.window.pos()
+        new_x = current_pos.x() + self.throw_speed.x() * 0.016
+        new_y = current_pos.y() + self.throw_speed.y() * 0.016
+        
+        # 边界检测
+        screen = self.window.screen().availableGeometry()
+        if (new_x < screen.left() and  current_pos.x() >= screen.left()) or (new_x > screen.right() - self.window.width() and current_pos.x() <= screen.right() - self.window.width()):
+            self.throw_speed.setX(-self.throw_speed.x()) # 左右边界完全弹性
+        if new_y < screen.top() and current_pos.y() >= screen.top():
+            self.throw_speed.setY(-self.throw_speed.y()) # 上边界完全弹性
+        if new_y > screen.bottom() - self.window.height():
+            self.throw_timer.stop() # 下边界直接结束
+            self.end_action()
+            self._come_back()
+            return
+
+        self.window.move(QPoint(int(new_x), int(new_y)))
+        
+    def _come_back(self):
+        """被扔出屏幕后自行返回"""
+        current_pos = self.window.pos()
+        
+        # 边界检测
+        screen = self.window.screen().availableGeometry()
+        if current_pos.x() < screen.left():
+            self.perform_action("Walk_left")
+        elif current_pos.x() > screen.right() - self.window.width():
+            self.perform_action("Walk_right")
 
     def switch_to_default_gif(self):
         """切换为默认待机动画"""
@@ -179,12 +239,13 @@ class ActionManager:
         new_y = current_pos.y() + self.current_speed.y()
         screen = self.window.screen().availableGeometry()
 
-        # 水平方向：如果到达右边界，从左边界重新出现
-        if new_x >= screen.right():
-        # if new_x + self.window.width() >= screen.right():
-            new_x = screen.left()
+        # 水平方向
+        if self.current_speed.x() > 0 and new_x >= screen.right(): # 当速度向右时，如果到达右边界，从左边界重新出现
+            new_x = screen.left() - self.window.width()
+        elif self.current_speed.x() < 0 and new_x + self.window.width() <= screen.left(): # 当速度向左时，如果到达左边界，从右边界重新出现
+            new_x = screen.right()
 
-        # 垂直边界逻辑（如果需要）
+        # 垂直边界逻辑
         if new_y <= screen.top() or new_y + self.window.height() >= screen.bottom():
             self.current_speed.setY(-self.current_speed.y())  # 反向 Y 轴方向
 
