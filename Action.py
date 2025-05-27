@@ -2,6 +2,7 @@ from PyQt6.QtGui import QAction, QCursor, QTransform
 from PyQt6.QtCore import QTimer, QPoint, QPointF, Qt
 from PyQt6.QtWidgets import QMenu, QColorDialog, QSystemTrayIcon, QApplication
 from Settings import SettingsManager  # 引入新的设置管理器
+import random
 
 class ActionManager:
     def __init__(self, window):
@@ -16,12 +17,20 @@ class ActionManager:
         self.action_timer = QTimer()  # 用于设置限时动作的定时器
         self.action_timer.setSingleShot(True)  # 设置为单次模式
         self.is_in_action = False  # 标记是否当前处于动作中
+        self.is_falling = False # 是否被扔出去了
 
         # 移动速度设置
-        self.walk_right_speed = QPoint(2, 0)  # Walk 时的移动速度
-        self.walk_left_speed = QPoint(-2, 0)
-        self.run_speed = QPoint(6, 0)  # Run 时的移动速度
-        self.current_speed = None  # 
+        self.walk_right_speed = QPoint(1, 0)  # Walk 时的移动速度
+        self.walk_left_speed = QPoint(-1, 0)
+        self.run_speed = QPoint(3, 0)  # Run 时的移动速度
+        self.current_speed = None  #
+
+        # 待机时随机移动
+        self.direction_weights = {"Walk_left": 1.0, "Walk_right": 1.0}
+        self.auto_move_timer = QTimer()
+        self.auto_move_timer.timeout.connect(self.trigger_auto_move)
+        self.auto_move_timer.setSingleShot(True)
+        self.schedule_auto_move()
 
         # 封装动作与 GIF 的映射关系以及动画时长
         self.actions_config = { # 这些动作会显示在右键菜单
@@ -34,7 +43,7 @@ class ActionManager:
             "Drag": {"gif": "./src/drag.gif", "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
             "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000}, # 拖动结束的跌落动作。注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
             "Throw": {"gif": "./src/throw.gif", "duration": 0},
-            "Throw_mouse": {"gif": "./src/run.gif", "duration": 500} # 需要动作😊😊
+            "Throw_mouse": {"gif": "./src/hit.gif", "duration": 500} # 需要动作😊😊
         }
 
         self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
@@ -137,6 +146,34 @@ class ActionManager:
             self.action_timer.timeout.connect(self.end_action)
             self.action_timer.start(config["duration"])
 
+    def schedule_auto_move(self):
+        """调度下一次自动移动"""
+        interval = random.randint(2000, 5000)  # 随机间隔
+        self.auto_move_timer.start(interval)
+
+    def trigger_auto_move(self):
+        """触发带权重调整的自动移动"""
+        if not self.is_in_action and not self.is_falling:
+            # 根据权重选择方向
+            total = self.direction_weights["Walk_left"] + self.direction_weights["Walk_right"]
+            rand = random.uniform(0, total)
+
+            if rand < self.direction_weights["Walk_left"]:
+                direction = "Walk_left"
+            else:
+                direction = "Walk_right"
+
+            # 衰减选中方向的权重（最少保留0.2）
+            self.direction_weights[direction] = max(0.2, self.direction_weights[direction] * 0.5)
+            # 恢复另一方向的权重
+            opposite = "Walk_right" if direction == "Walk_left" else "Walk_left"
+            self.direction_weights[opposite] = min(1.0, self.direction_weights[opposite] * 1.2)
+
+            duration = random.randint(2000, 4000)
+            self.perform_action(direction, duration)
+
+        self.schedule_auto_move()
+
     def show_talk_text(self):
         """显示对话功能"""
         self.end_action()
@@ -166,11 +203,13 @@ class ActionManager:
         self.stop_moving_window()
         self.switch_to_default_gif()
         self.is_in_action = False
+        self.schedule_auto_move()
 
     def handle_throw(self, initial_velocity):
         """处理抛出动作"""
         self.end_action()
         # 播放抛出动画
+        self.is_falling = True
         self.perform_no_menu_action("Throw")
         # 设置初速度
         self.throw_speed = initial_velocity
@@ -196,6 +235,8 @@ class ActionManager:
         if new_y > screen.bottom() - self.window.height():
             self.throw_timer.stop() # 下边界直接结束
             self.end_action()
+            self.is_falling = False
+            self.perform_no_menu_action("Drag_over") # 播放动作过渡
             self._come_back()
             return
 

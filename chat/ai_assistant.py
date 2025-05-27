@@ -5,7 +5,7 @@ import re
 from openai import OpenAI
 from PyQt6.QtCore import QThread, pyqtSignal
 from .test_api import MockAIResponse
-from .prompt import PROMPT_EN, PROMPT_CH
+from .prompt import PROMPT_STYLE, PROMPT_CMD
 from .file_processor import FileProcessor
 
 TEST_MODE = False# 是否处于测试状态
@@ -18,7 +18,7 @@ endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
 TEMP_RESPONSE = 0.7 # 正常回复的温度
 TEMP_FEEDBACK = 0.5 # 生成执行任务反馈的温度
-PROMPT = PROMPT_CH
+PROMPT = PROMPT_STYLE + PROMPT_CMD
 
 client = OpenAI(
     base_url=endpoint,
@@ -112,7 +112,7 @@ class AIChat(QThread):
                 if self._stop_flag:  # 检查停止标志
                     break
                 if chunk.choices and (content := chunk.choices[0].delta.content):
-                    # 阶段1：收集普通文本或检测JSON开始
+                    # 收集普通文本或检测JSON开始
                     if not is_json_response:
                         # 检测到JSON开始符时切换模式
                         if '{' in content:
@@ -181,7 +181,7 @@ class AIChat(QThread):
             # 处理纯文本响应（无JSON）
             if not is_json_response and pending_text:
                 full_message = ''.join(pending_text)
-                self.response_received.emit("", True)  # 结束消息
+                self.response_received.emit("", True)
                 conversation_history.append({
                     "role": "assistant",
                     "content": full_message
@@ -206,7 +206,6 @@ class AIChat(QThread):
     def _execute_command(self, full_response):
         """解析并执行JSON指令, 返回 (反馈信息, 需要清除的行数)"""
         try:
-            # 增强JSON解析容错
             json_matches = re.findall(r'\{.*?\}(?=\s*(?:\{|\Z))', full_response, re.DOTALL)
             if not json_matches:
                 return "No valid JSON command found in response", 0
@@ -308,7 +307,7 @@ class AIChat(QThread):
                     matches.append(path)
                     if len(matches) >= 5: break
                 # 限制搜索深度
-                if len(path.parent.parts) - len(root_dir.parts) > 3:
+                if len(path.parent.parts) - len(root_dir.parts) > 5:
                     continue
         except Exception as e:
             print(f"Search error in {root_dir}: {str(e)}")

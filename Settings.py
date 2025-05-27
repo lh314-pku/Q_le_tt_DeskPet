@@ -1,12 +1,14 @@
 import os
 import json
+
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import (
     QMenu, QColorDialog, QWidget, QFrame, QSizePolicy, QComboBox,
     QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit
 )
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
-from chat.prompt import PROMPT_EN, PROMPT_CH
+from chat.prompt import PROMPT_STYLE
 
 class SettingsManager(QWidget):
     def __init__(self, window):
@@ -19,17 +21,16 @@ class SettingsManager(QWidget):
             "api_key": "",
             "prompt_text": "",
             "gif_color": "#FFFFFF",
-            "language": "简体中文",  # 默认语言为中文
         }
         self.load_settings()
         self.initialize_ui_from_settings() # 加载并初始化配置
-        self.default_prompts = {"简体中文": PROMPT_CH, "English": PROMPT_EN}
-        self.language_is_CH = self.settings_data.get("language", "简体中文") == "简体中文"
+        self.default_prompts = PROMPT_STYLE
         self.font = QFont("Microsoft YaHei", 15)
 
         # 窗口设置
         self.setWindowTitle("Settings")
         self.setFixedSize(800, 600)
+        self.setWindowIcon(QtGui.QIcon("./src/settings.ico"))
 
         # 主布局
         self.layout = QHBoxLayout(self)
@@ -113,8 +114,6 @@ class SettingsManager(QWidget):
                 widget.deleteLater()
 
         if option == "color":
-            label = QLabel("Here you can change GIF color:")
-            label.setFont(self.font)
             # QColorDialog 动态显示颜色选择器
             self.color_dialog = QColorDialog(self)
             self.color_dialog.setOptions(QColorDialog.ColorDialogOption.NoButtons)
@@ -122,7 +121,6 @@ class SettingsManager(QWidget):
             initial_color = QColor(self.settings_data["gif_color"])
             self.color_dialog.setCurrentColor(initial_color)
             self.color_dialog.currentColorChanged.connect(self.update_gif_color)
-            self.right_layout.addWidget(label)
             self.right_layout.addWidget(self.color_dialog)
 
         elif option == "reset":
@@ -149,32 +147,16 @@ class SettingsManager(QWidget):
             label = QLabel("Customize your own AI prompt:")
             label.setFont(self.font)
             prompt_text_edit = QTextEdit(self)
-            prompt_text_edit.setText(self.get_prompt())
-            prompt_text_edit.setPlaceholderText("Enter your prompt here...")
+            prompt_text_edit.setPlaceholderText(PROMPT_STYLE)
             prompt_text_edit.setMinimumHeight(450)
             prompt_text_edit.setFont(self.font)
-
-            # 创建语言切换下拉框
-            language_choose = QComboBox(self)
-            language_choose.addItems(["简体中文", "English"])
-            current_language = self.settings_data.get("language", "简体中文")
-            language_choose.setCurrentText(current_language)
-            language_choose.currentTextChanged.connect(self.update_language)
 
             # 保存按钮
             save_prompt_button = QPushButton("Save Prompt", self)
             save_prompt_button.clicked.connect(lambda: self.set_prompt(prompt_text_edit.toPlainText()))
             self.right_layout.addWidget(label)
             self.right_layout.addWidget(prompt_text_edit)
-            self.right_layout.addWidget(language_choose)
             self.right_layout.addWidget(save_prompt_button)
-
-    def update_language(self, language):
-        """更新系统语言并刷新 Prompt"""
-        self.settings_data["language"] = language
-        self.language_is_CH = (language == "简体中文")
-        self.save_settings()  # 保存配置
-        print(f"Language switched to: {language}")
 
     def update_gif_color(self, color=None):
         if isinstance(color, QColor):
@@ -190,7 +172,6 @@ class SettingsManager(QWidget):
             "api_key": "",
             "prompt_text": "",
             "gif_color": "#FFFFFF",
-            "language": "简体中文",
         }
         self.update_gif_color("#FFFFFF")
         self.save_settings()
@@ -210,8 +191,7 @@ class SettingsManager(QWidget):
 
     def get_prompt(self):
         prompt = self.settings_data.get("prompt_text", "").strip()
-        default_prompt = self.default_prompts["简体中文"] if self.language_is_CH else self.default_prompts["English"]
-        return prompt if prompt else default_prompt
+        return prompt if prompt else PROMPT_STYLE
 
     def save_settings(self):
         try:
@@ -243,10 +223,6 @@ class SettingsManager(QWidget):
                 self.color_dialog.setCurrentColor(initial_color)
             self.window.set_gif_color(gif_color)
 
-        # 初始化语言切换
-        default_language = self.settings_data.get("language", "简体中文")
-        self.language_is_CH = (default_language == "简体中文")
-
         # 初始化 API 设置
         if hasattr(self, "right_layout"):
             self.update_right_content("api")  # 自动切换到 API 配置页面
@@ -258,7 +234,7 @@ class SettingsManager(QWidget):
                 if isinstance(widget, QTextEdit):  # 检测到 API 的输入框
                     widget.setText(api_key)
 
-        # 初始化 Prompt（设置语言和提示文本）
+        # 初始化 Prompt
         if hasattr(self, "right_layout"):
             self.update_right_content("prompt")  # 自动切换到 Prompt 页面
             for i in range(self.right_layout.count()):

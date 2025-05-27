@@ -28,7 +28,7 @@ class MyMainWindow(QMainWindow):
         self.action_manager.switch_to_default_gif()  # 默认设置待机动画
     
     def initUI(self):
-        self.setWindowFlags( Qt.WindowType.WindowStaysOnTopHint) # Qt.WindowType.FramelessWindowHint |
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self.resize(QSize(150, 193))
@@ -104,8 +104,9 @@ class MyMainWindow(QMainWindow):
             self.velocity_history = [v for v in self.velocity_history if v[0] > cutoff_time]
         
             move_distance = (current_pos - self.press_pos).manhattanLength()
-            if move_distance > self.drag_threshold:
-                # 超过阈值视为拖动
+
+            # 超过阈值且不在下落状态视为拖动
+            if move_distance > self.drag_threshold and not self.action_manager.is_falling:
                 if not self.is_dragging:
                     self.action_manager.perform_no_menu_action("Drag")
                 self.is_dragging = True
@@ -117,11 +118,14 @@ class MyMainWindow(QMainWindow):
         if event.button() == Qt.MouseButton.LeftButton:
             self.offset = None
             if not self.is_dragging:
-                # 点击立即响应
-                if self.angry_value >= 5:
-                    self.action_manager.perform_no_menu_action("Throw_mouse")
+                # 点击立即响应，坠落过程中点击不响应/特殊响应
+                if not self.action_manager.is_falling:
+                    if self.angry_value >= 5:
+                        self.action_manager.perform_no_menu_action("Throw_mouse")
+                    else:
+                        self.action_manager.perform_no_menu_action("Hit")
                 else:
-                    self.action_manager.perform_no_menu_action("Hit")
+                    pass # 坠落过程中点击的反应
             else:
                 if len(self.velocity_history) >= 2:
                     sample_data = [v for v in self.velocity_history if v[0] >= (QDateTime.currentDateTime().toMSecsSinceEpoch() - self.speed_sample_duration)]

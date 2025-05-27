@@ -28,7 +28,7 @@ class ChatWindow(QMainWindow, Ui_MainWindow):
     def setup_ui(self):
         self.sendButton.clicked.connect(self.send_message)
         # self.inputEdit.textChanged.connect(self.adjust_input_height)  # 文本变化时自动调整输入框高度
-        self.clearButton.clicked.connect(self.clear_chat)  # 绑定清空聊天按钮事件
+        self.clearButton.clicked.connect(self.clear_chat)
         self.stopButton.clicked.connect(self.stop_ai_response)
         self.chatHistory.setReadOnly(True)
         self.setWindowTitle("AI Chat Assistant")
