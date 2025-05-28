@@ -11,6 +11,10 @@ class ActionManager:
         :param window: 传入主窗口实例，用于操作主窗口的方法
         """
         self.window = window
+        self.auto_move_enabled = True  # 临时值
+        self.min_interval = 3000
+        self.max_interval = 8000
+
         self.tray_icon = None  # 初始化托盘图标变量
         self.direction = QPoint(1, 0)  # 初始方向
         self.move_timer = QTimer()  # 移动计时器
@@ -18,6 +22,9 @@ class ActionManager:
         self.action_timer.setSingleShot(True)  # 设置为单次模式
         self.is_in_action = False  # 标记是否当前处于动作中
         self.is_falling = False # 是否被扔出去了
+
+        # 初始化设置窗口
+        self.settings_window = SettingsManager(self.window)
 
         # 移动速度设置
         self.walk_speed = 2  # Walk 时的移动速度
@@ -30,6 +37,18 @@ class ActionManager:
         self.auto_move_timer.timeout.connect(self.trigger_auto_move)
         self.auto_move_timer.setSingleShot(True)
         self.schedule_auto_move()
+
+        # ▼ 从设置管理器获取最新值 ▼
+        self.auto_move_enabled = \
+            self.settings_window.settings_data.get("auto_move",True)
+        self.min_interval = \
+            self.settings_window.settings_data.get("min_interval", 3000)
+        self.max_interval = \
+            self.settings_window.settings_data.get("max_interval", 8000)
+
+        # 初始化时根据设置状态调度
+        if self.auto_move_enabled:
+            self.schedule_auto_move()
 
         # 封装动作与 GIF 的映射关系以及动画时长
         self.actions_config = { # 这些动作会显示在右键菜单
@@ -54,11 +73,8 @@ class ActionManager:
         self.gravity = self.window.gravity
         self.throw_timer = QTimer()  # 抛出运动定时器
         self.throw_timer.timeout.connect(self.update_throw_motion)
- 
-        # 初始化设置窗口
-        self.settings_window = SettingsManager(self.window)
 
-        self.can_bounce = self.settings_window.can_bounce # 能否被反弹
+        self.can_bounce = self.settings_window.settings_data["can_bounce"] # 能否被反弹
 
         # 初始化右键菜单
         self.init_context_menu()
@@ -155,10 +171,21 @@ class ActionManager:
             self.action_timer.timeout.connect(self.end_action)
             self.action_timer.start(config["duration"])
 
+    # 在ActionManager中添加保护性校验
     def schedule_auto_move(self):
-        """调度下一次自动移动"""
-        interval = random.randint(2000, 8000)  # 随机间隔
-        self.auto_move_timer.start(interval)
+        """增强方法稳健性"""
+        try:
+            if self.auto_move_enabled:
+                interval = random.randint(self.min_interval, self.max_interval)
+                self.auto_move_timer.start(interval)
+            else:
+                self.auto_move_timer.stop()
+        except AttributeError as e:
+            print(f"安全保护机制生效: {str(e)}")
+            self.auto_move_enabled = True  # 恢复到可运行状态
+            self.min_interval = 3000
+            self.max_interval = 8000
+            self.schedule_auto_move()  # 带默认值重试
 
     def trigger_auto_move(self):
         """完全随机触发移动"""
@@ -172,7 +199,8 @@ class ActionManager:
             else:
                 self.possible_actions = ["Walk_left", "Walk_right", "Climb_up", "Climb_down"]
             selected = random.choice(self.possible_actions)
-            duration = random.randint(3000, 8000)
+            # ▼ 使用动态间隔时长 ▼
+            duration = random.randint(self.min_interval, self.max_interval)
             self.perform_action(selected, duration)
 
         self.schedule_auto_move()

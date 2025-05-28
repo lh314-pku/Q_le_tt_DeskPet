@@ -1,6 +1,9 @@
 {
     "api_key": "",
     "prompt_text": "",
-    "gif_color": "#ffaa00",
-    "can_bounce": true
+    "gif_color": "#79a6ff",
+    "can_bounce": true,
+    "auto_move": false,
+    "min_interval": 1000,
+    "max_interval": 2000
 }

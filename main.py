@@ -12,20 +12,21 @@ class MyMainWindow(QMainWindow):
         self.initUI()
         self.setWindowIcon(QIcon("./src/stickpet.ico"))
         self.setWindowTitle("My Application")  # 设置窗口标题
-        
-        self.drag_threshold = 1  # 拖动判断阈值（像素）
-        self.press_pos = QPoint()  # 记录按下时的坐标
-        self.is_dragging = False   # 拖动状态标记
 
         self.velocity_history = []  # 存储鼠标移动速度历史记录（时间戳，位置）
         self.speed_sample_duration = 50  # 速度采样时间区间长度（毫秒），可调整
         self.throw_threshold = 1000  # 抛出速度阈值（像素/秒）
         self.gravity = 980  # 重力加速度（像素/秒²）
 
-        self.angry_value = 0
-
         self.action_manager = ActionManager(self)  # 引入动作管理器
         self.action_manager.switch_to_default_gif()  # 默认设置待机动画
+
+        self.drag_threshold = 1  # 拖动判断阈值（像素）
+        self.press_pos = QPoint()  # 记录按下时的坐标
+        self.is_dragging = False   # 拖动状态标记
+
+        self.angry_value = 0
+
     
     def initUI(self):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)

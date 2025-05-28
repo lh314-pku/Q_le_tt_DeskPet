@@ -22,7 +22,11 @@ class SettingsManager(QWidget):
             "prompt_text": "",
             "gif_color": "#FFFFFF",
             "can_bounce": True,
+            "auto_move": True,  # 新增配置项：随机游走开关
+            "min_interval": 3000,  # 新增配置项：最小间隔
+            "max_interval": 8000  # 新增配置项：最大间隔
         }
+
         self.load_settings()
         self.initialize_ui_from_settings() # 加载并初始化配置
         self.default_prompts = PROMPT_STYLE
@@ -114,10 +118,19 @@ class SettingsManager(QWidget):
 
     def update_right_content(self, option):
         # 清空右侧布局
-        for i in reversed(range(self.right_layout.count())):
-            widget = self.right_layout.itemAt(i).widget()
-            if widget is not None:
-                widget.deleteLater()
+        def clear_layout(layout):
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    sub_layout = item.layout()
+                    if sub_layout is not None:
+                        clear_layout(sub_layout)
+                        sub_layout.deleteLater()
+
+        clear_layout(self.right_layout)  # 调用清除函数
 
         if option == "color":
             # QColorDialog 动态显示颜色选择器
@@ -175,6 +188,41 @@ class SettingsManager(QWidget):
             self.right_layout.addWidget(label)
             self.right_layout.addWidget(bounce_checkbox)
 
+            # 新增随机游走设置部分 ▼
+            line1 = QFrame()
+            line1.setFrameShape(QFrame.Shape.HLine)
+            line1.setStyleSheet("margin:15px 0;")
+            # 启用复选框
+            auto_move_check = QCheckBox("Enable Random Walking")
+            auto_move_check.setChecked(self.settings_data.get("auto_move", True))
+            auto_move_check.toggled.connect(self.set_auto_move)
+
+            # 时间间隔设置
+            interval_label = QLabel("Move Interval (ms):")
+            min_input = QTextEdit(str(self.settings_data.get("min_interval", 3000)))
+            min_input.setMaximumHeight(45)
+            max_input = QTextEdit(str(self.settings_data.get("max_interval", 8000)))
+            max_input.setMaximumHeight(45)
+
+            # 保存按钮
+            save_btn = QPushButton("Save Intervals")
+            save_btn.clicked.connect(lambda: self.set_interval(
+                min_input.toPlainText(),
+                max_input.toPlainText()
+            ))
+            # 布局管理
+            interval_layout = QHBoxLayout()
+            interval_layout.addWidget(QLabel("Min:"))
+            interval_layout.addWidget(min_input)
+            interval_layout.addWidget(QLabel("Max:"))
+            interval_layout.addWidget(max_input)
+            interval_layout.addWidget(save_btn)
+            # 组合控件添加到主界面
+            self.right_layout.addWidget(line1)
+            self.right_layout.addWidget(auto_move_check)
+            self.right_layout.addWidget(interval_label)
+            self.right_layout.addLayout(interval_layout)
+
     def update_gif_color(self, color=None):
         if isinstance(color, QColor):
             color = color.name()
@@ -190,6 +238,9 @@ class SettingsManager(QWidget):
             "prompt_text": "",
             "gif_color": "#FFFFFF",
             "can_bounce": True,
+            "auto_move": True,  # 新增配置项：随机游走开关
+            "min_interval": 3000,  # 新增配置项：最小间隔
+            "max_interval": 8000  # 新增配置项：最大间隔
         }
         self.update_gif_color("#FFFFFF")
         self.save_settings()
@@ -265,7 +316,31 @@ class SettingsManager(QWidget):
                 if isinstance(widget, QTextEdit):  # 检测到 Prompt 的输入框
                     widget.setText(self.get_prompt())
 
-        # 初始化其它设置
-        self.can_bounce  = self.settings_data.get("can_bounce", True)
-
         print("UI initialized with settings.")
+
+    # 在SettingsManager中修改保存方法
+    def set_auto_move(self, enable):
+        """处理启用/禁用随机游走"""
+        self.settings_data["auto_move"] = enable
+        self.save_settings()
+        # ✔️ 通过安全访问防止空指针，并添加默认值保护
+        if hasattr(self.window, 'action_manager'):
+            self.window.action_manager.auto_move_enabled = enable
+
+    def set_interval(self, min_val, max_val):
+        """处理时间间隔修改"""
+        try:
+            min_int = int(min_val) if min_val else 3000
+            max_int = int(max_val) if max_val else 8000
+            if 1000 <= min_int <= max_int:
+                self.settings_data["min_interval"] = min_int
+                self.settings_data["max_interval"] = max_int
+                self.save_settings()
+                # ✔️ 添加安全校验
+                if hasattr(self.window, 'action_manager'):
+                    if hasattr(self.window.action_manager, 'schedule_auto_move'):
+                        self.window.action_manager.min_interval = min_int
+                        self.window.action_manager.max_interval = max_int
+                        self.window.action_manager.schedule_auto_move()
+        except ValueError:
+            print("Invalid interval value")
