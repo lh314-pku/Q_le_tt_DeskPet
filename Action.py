@@ -45,7 +45,7 @@ class ActionManager:
             "Drag": {"gif": "./src/drag.gif", "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
             "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000}, # 拖动结束的跌落动作。注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
             "Thrown": {"gif": "./src/thrown.gif", "duration": 0},
-            "Throw_mouse": {"gif": "./src/throw.gif", "duration": 500} # 需要动作😊😊
+            "Throw_mouse": {"gif": "./src/throw.gif", "duration": 800} # 😊😊
         }
 
         self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
