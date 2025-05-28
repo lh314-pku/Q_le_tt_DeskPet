@@ -20,13 +20,13 @@ class ActionManager:
         self.is_falling = False # 是否被扔出去了
 
         # 移动速度设置
-        self.walk_right_speed = QPoint(2, 0)  # Walk 时的移动速度
-        self.walk_left_speed = QPoint(-2, 0)
-        self.run_speed = QPoint(5, 0)  # Run 时的移动速度
-        self.current_speed = None  #
+        self.walk_speed = 1  # Walk 时的移动速度
+        self.run_speed = 5  # Run 时的移动速度
+        self.climb_speed = 2 # 爬的速度
+        self.current_speed = None
 
         # 待机时随机移动
-        self.direction_weights = {"Walk_left": 1.0, "Walk_right": 1.0}
+        self.possible_actions = ["Walk_left", "Walk_right", "Climb_up", "Climb_down"]
         self.auto_move_timer = QTimer()
         self.auto_move_timer.timeout.connect(self.trigger_auto_move)
         self.auto_move_timer.setSingleShot(True)
@@ -37,6 +37,8 @@ class ActionManager:
             "Walk_right": {"gif": "./src/walk_right.gif", "duration": 5000},
             "Walk_left": {"gif": "./src/walk_left.gif", "duration": 5000},
             "Run": {"gif": "./src/run.gif", "duration": 5000},
+            "Climb_up": {"gif": "./src/climb_up.gif", "duration": 5000},
+            "Climb_down": {"gif": "./src/climb_down.gif", "duration": 5000},
         }
         self.no_menu_actions_config = { # 这些动作不会显示在右键菜单
             "Hit": {"gif": "./src/hit.gif", "duration": 500},
@@ -103,11 +105,15 @@ class ActionManager:
 
         # 根据动作类型设置不同的移动速度
         if action_name == "Walk_right":
-            self.current_speed = self.walk_right_speed
+            self.current_speed = QPoint(self.walk_speed, 0)
         elif action_name == "Walk_left":
-            self.current_speed = self.walk_left_speed
+            self.current_speed = QPoint(-self.walk_speed, 0)
         elif action_name == "Run":
-            self.current_speed = self.run_speed
+            self.current_speed = QPoint(self.run_speed, 0)
+        elif action_name == "Climb_up":
+            self.current_speed = QPoint(0, -self.climb_speed)
+        elif action_name == "Climb_down":
+            self.current_speed = QPoint(0, self.climb_speed)
 
         self.is_in_action = True
         self.window.update_gif(config["gif"])
@@ -152,25 +158,12 @@ class ActionManager:
         self.auto_move_timer.start(interval)
 
     def trigger_auto_move(self):
-        """触发带权重调整的自动移动"""
+        """完全随机触发移动"""
         if not self.is_in_action and not self.is_falling:
-            # 根据权重选择方向
-            total = self.direction_weights["Walk_left"] + self.direction_weights["Walk_right"]
-            rand = random.uniform(0, total)
-
-            if rand < self.direction_weights["Walk_left"]:
-                direction = "Walk_left"
-            else:
-                direction = "Walk_right"
-
-            # 衰减选中方向的权重（最少保留0.2）
-            self.direction_weights[direction] = max(0.2, self.direction_weights[direction] * 0.5)
-            # 恢复另一方向的权重
-            opposite = "Walk_right" if direction == "Walk_left" else "Walk_left"
-            self.direction_weights[opposite] = min(1.0, self.direction_weights[opposite] * 1.2)
-
+            # 从所有可能动作中随机选择
+            selected = random.choice(self.possible_actions)
             duration = random.randint(2000, 4000)
-            self.perform_action(direction, duration)
+            self.perform_action(selected, duration)
 
         self.schedule_auto_move()
 
@@ -291,9 +284,12 @@ class ActionManager:
         elif self.current_speed.x() < 0 and new_x + self.window.width() <= screen.left(): # 当速度向左时，如果到达左边界，从右边界重新出现
             new_x = screen.right()
 
-        # 垂直边界逻辑
-        if new_y <= screen.top() or new_y + self.window.height() >= screen.bottom():
-            self.current_speed.setY(-self.current_speed.y())  # 反向 Y 轴方向
+        # 垂直方向循环逻辑
+        dy = 50
+        if self.current_speed.y() < 0 and new_y <= screen.top() - self.window.height():
+            new_y = screen.bottom() + dy  # 向上越界时从底部出现
+        elif self.current_speed.y() > 0 and new_y >= screen.bottom() + dy:
+            new_y = screen.top() - self.window.height()  # 向下越界时从顶部出现
 
         # 移动窗口到新的位置
         self.window.move(QPoint(new_x, new_y))
