@@ -26,7 +26,6 @@ class ActionManager:
         self.current_speed = None
 
         # 待机时随机移动
-        self.possible_actions = ["Walk_left", "Walk_right", "Climb_up", "Climb_down"]
         self.auto_move_timer = QTimer()
         self.auto_move_timer.timeout.connect(self.trigger_auto_move)
         self.auto_move_timer.setSingleShot(True)
@@ -158,7 +157,7 @@ class ActionManager:
 
     def schedule_auto_move(self):
         """调度下一次自动移动"""
-        interval = random.randint(2000, 5000)  # 随机间隔
+        interval = random.randint(2000, 8000)  # 随机间隔
         self.auto_move_timer.start(interval)
 
     def trigger_auto_move(self):
@@ -166,18 +165,14 @@ class ActionManager:
         if not self.is_in_action and not self.is_falling:
             # 从所有可能动作中随机选择
             screen = self.window.screen().availableGeometry()
-            if self.window.pos().y() < screen.top():
-                selected = "Climb_down"
-            elif self.window.pos().y() > screen.bottom() - self.window.height():
-                selected = "Climb_up"
-            elif self.window.pos().x() < screen.left():
-                selected = "Walk_right"
-            elif self.window.pos().x() > screen.right() - self.window.width():
-                selected = "Walk_left"
+            if self.window.pos().y() < screen.top() or self.window.pos().y() > screen.bottom() - self.window.height() / 2:
+                self.possible_actions = ["Climb_up", "Climb_down"]
+            elif self.window.pos().x() < screen.left() or self.window.pos().x() > screen.right() - self.window.width():
+                self.possible_actions = ["Walk_left", "Walk_right"]
             else:
-                selected = random.choice(self.possible_actions)
-
-            duration = random.randint(3000, 6000)
+                self.possible_actions = ["Walk_left", "Walk_right", "Climb_up", "Climb_down"]
+            selected = random.choice(self.possible_actions)
+            duration = random.randint(3000, 8000)
             self.perform_action(selected, duration)
 
         self.schedule_auto_move()
