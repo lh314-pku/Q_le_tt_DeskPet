@@ -20,7 +20,7 @@ class ActionManager:
         self.is_falling = False # 是否被扔出去了
 
         # 移动速度设置
-        self.walk_speed = 1  # Walk 时的移动速度
+        self.walk_speed = 2  # Walk 时的移动速度
         self.run_speed = 5  # Run 时的移动速度
         self.climb_speed = 2 # 爬的速度
         self.current_speed = None
@@ -59,14 +59,13 @@ class ActionManager:
         # 初始化设置窗口
         self.settings_window = SettingsManager(self.window)
 
-        ########################################
-        self.bounce = None # 是否反弹（和设置绑定）
-        ########################################
+        self.can_bounce = self.settings_window.can_bounce # 能否被反弹
 
         # 初始化右键菜单
         self.init_context_menu()
         # 初始化托盘图标
         self.init_tray_icon()
+        self.tray_icon.show()
 
     def init_context_menu(self):
         """初始化右键菜单"""
@@ -166,8 +165,19 @@ class ActionManager:
         """完全随机触发移动"""
         if not self.is_in_action and not self.is_falling:
             # 从所有可能动作中随机选择
-            selected = random.choice(self.possible_actions)
-            duration = random.randint(2000, 4000)
+            screen = self.window.screen().availableGeometry()
+            if self.window.pos().y() < screen.top():
+                selected = "Climb_down"
+            elif self.window.pos().y() > screen.bottom() - self.window.height():
+                selected = "Climb_up"
+            elif self.window.pos().x() < screen.left():
+                selected = "Walk_right"
+            elif self.window.pos().x() > screen.right() - self.window.width():
+                selected = "Walk_left"
+            else:
+                selected = random.choice(self.possible_actions)
+
+            duration = random.randint(3000, 6000)
             self.perform_action(selected, duration)
 
         self.schedule_auto_move()
@@ -226,7 +236,7 @@ class ActionManager:
         
         # 边界检测
         screen = self.window.screen().availableGeometry()
-        if self.bounce:
+        if self.can_bounce:
             if (new_x < screen.left() and  current_pos.x() >= screen.left()) or (new_x > screen.right() - self.window.width() and current_pos.x() <= screen.right() - self.window.width()):
                 self.throw_speed.setX(-self.throw_speed.x()) # 左右边界完全弹性
             if new_y < screen.top() and current_pos.y() >= screen.top():

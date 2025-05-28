@@ -1,5 +1,6 @@
 {
     "api_key": "",
     "prompt_text": "",
-    "gif_color": "#ffaa00"
+    "gif_color": "#ffaa00",
+    "can_bounce": true
 }

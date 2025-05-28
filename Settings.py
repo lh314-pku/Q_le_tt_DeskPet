@@ -4,7 +4,7 @@ import json
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import (
     QMenu, QColorDialog, QWidget, QFrame, QSizePolicy, QComboBox,
-    QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit
+    QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit, QCheckBox
 )
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
@@ -21,6 +21,7 @@ class SettingsManager(QWidget):
             "api_key": "",
             "prompt_text": "",
             "gif_color": "#FFFFFF",
+            "can_bounce": True,
         }
         self.load_settings()
         self.initialize_ui_from_settings() # 加载并初始化配置
@@ -72,6 +73,7 @@ class SettingsManager(QWidget):
             QPushButton:hover {background-color: #d6d6d6; }
             QPushButton:pressed {background-color: #cccccc; }
             QTextEdit {font-size: 16px; }
+            QCheckBox {font-size: 14px; }
             QComboBox {font-size: 16px; padding: 8px; }
             QFrame {margin: 12px 0; }
         """)
@@ -91,6 +93,10 @@ class SettingsManager(QWidget):
         self.prompt_button = QPushButton("Setting Your Prompt", self)
         self.prompt_button.clicked.connect(lambda: self.update_right_content("prompt"))
         self.left_layout.addWidget(self.prompt_button)
+
+        self.others_button = QPushButton("Other Settings", self)
+        self.others_button.clicked.connect(lambda: self.update_right_content("other"))
+        self.left_layout.addWidget(self.others_button)
 
         self.reset_button = QPushButton("Reset to Default", self)
         self.reset_button.clicked.connect(lambda: self.update_right_content("reset"))
@@ -158,6 +164,17 @@ class SettingsManager(QWidget):
             self.right_layout.addWidget(prompt_text_edit)
             self.right_layout.addWidget(save_prompt_button)
 
+        elif option == "other":
+            label = QLabel("Other Settings")
+            label.setFont(self.font)
+
+            bounce_checkbox = QCheckBox("Enable Bounce")
+            bounce_checkbox.setChecked(self.settings_data.get("can_bounce", True))
+            bounce_checkbox.setFont(self.font)
+            bounce_checkbox.toggled.connect(self.set_bounce)
+            self.right_layout.addWidget(label)
+            self.right_layout.addWidget(bounce_checkbox)
+
     def update_gif_color(self, color=None):
         if isinstance(color, QColor):
             color = color.name()
@@ -172,6 +189,7 @@ class SettingsManager(QWidget):
             "api_key": "",
             "prompt_text": "",
             "gif_color": "#FFFFFF",
+            "can_bounce": True,
         }
         self.update_gif_color("#FFFFFF")
         self.save_settings()
@@ -192,6 +210,11 @@ class SettingsManager(QWidget):
     def get_prompt(self):
         prompt = self.settings_data.get("prompt_text", "").strip()
         return prompt if prompt else PROMPT_STYLE
+
+    def set_bounce(self, value):
+        self.settings_data["can_bounce"] = value
+        self.save_settings()
+        self.window.action_manager.can_bounce = value
 
     def save_settings(self):
         try:
@@ -241,5 +264,8 @@ class SettingsManager(QWidget):
                 widget = self.right_layout.itemAt(i).widget()
                 if isinstance(widget, QTextEdit):  # 检测到 Prompt 的输入框
                     widget.setText(self.get_prompt())
+
+        # 初始化其它设置
+        self.can_bounce  = self.settings_data.get("can_bounce", True)
 
         print("UI initialized with settings.")
