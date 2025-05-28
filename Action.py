@@ -42,8 +42,8 @@ class ActionManager:
             "Hit": {"gif": "./src/hit.gif", "duration": 500},
             "Drag": {"gif": "./src/drag.gif", "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
             "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000}, # 拖动结束的跌落动作。注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
-            "Throw": {"gif": "./src/throw.gif", "duration": 0},
-            "Throw_mouse": {"gif": "./src/hit.gif", "duration": 500} # 需要动作😊😊
+            "Thrown": {"gif": "./src/thrown.gif", "duration": 0},
+            "Throw_mouse": {"gif": "./src/throw.gif", "duration": 500} # 需要动作😊😊
         }
 
         self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
@@ -136,7 +136,7 @@ class ActionManager:
             self.window.angry_value = min(10, self.window.angry_value + 1)
         elif action_name == "Drag_over":
             self.window.angry_value = max(0, self.window.angry_value - 1)
-        elif action_name == "Throw":
+        elif action_name == "Thrown":
             self.window.angry_value = min(10, self.window.angry_value + 2)
 
         # print("Angry Value:", self.window.angry_value)
@@ -210,7 +210,7 @@ class ActionManager:
         self.end_action()
         # 播放抛出动画
         self.is_falling = True
-        self.perform_no_menu_action("Throw")
+        self.perform_no_menu_action("Thrown")
         # 设置初速度
         self.throw_speed = initial_velocity
         # 启动抛体运动定时器
