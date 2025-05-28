@@ -58,6 +58,11 @@ class ActionManager:
  
         # 初始化设置窗口
         self.settings_window = SettingsManager(self.window)
+
+        ########################################
+        self.bounce = None # 是否反弹（和设置绑定）
+        ########################################
+
         # 初始化右键菜单
         self.init_context_menu()
         # 初始化托盘图标
@@ -221,10 +226,11 @@ class ActionManager:
         
         # 边界检测
         screen = self.window.screen().availableGeometry()
-        if (new_x < screen.left() and  current_pos.x() >= screen.left()) or (new_x > screen.right() - self.window.width() and current_pos.x() <= screen.right() - self.window.width()):
-            self.throw_speed.setX(-self.throw_speed.x()) # 左右边界完全弹性
-        if new_y < screen.top() and current_pos.y() >= screen.top():
-            self.throw_speed.setY(-self.throw_speed.y()) # 上边界完全弹性
+        if self.bounce:
+            if (new_x < screen.left() and  current_pos.x() >= screen.left()) or (new_x > screen.right() - self.window.width() and current_pos.x() <= screen.right() - self.window.width()):
+                self.throw_speed.setX(-self.throw_speed.x()) # 左右边界完全弹性
+            if new_y < screen.top() and current_pos.y() >= screen.top():
+                self.throw_speed.setY(-self.throw_speed.y()) # 上边界完全弹性
         if new_y > screen.bottom() - self.window.height():
             self.throw_timer.stop() # 下边界直接结束
             self.end_action()
