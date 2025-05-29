@@ -14,24 +14,24 @@ HISTORY_FILE = "chat_history.json" # 聊天历史文件
 # 获取当前脚本文件所在目录
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # 构造目标 JSON 文件路径 (上一级文件夹中的 data/config.json)
-json_file_path = os.path.join(current_dir, '..', 'data', 'settings.json')
+json_file_path = os.path.join(current_dir, '..','settings.json')
 
-token = "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"  # API 密钥
+token = ""  # API 密钥
 # 打开并读取 JSON 文件
 try:
     with open(json_file_path, 'r', encoding='utf-8') as json_file:
         data = json.load(json_file)  # 加载 JSON 数据
         print("成功读取 JSON 文件中的数据：")
-        if len(data["api_key"]) != 0:
-            token = data["api_key"]
+        print(data)
+        if len(data['api_key']) != 0:
+            token = data['api_key']
         else:
-            token = "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"  # API 密钥
-        # print(data)
+            token = ""  # API 密钥
 except FileNotFoundError:
     print(f"文件未找到：{json_file_path}")
 except json.JSONDecodeError:
     print(f"JSON 文件解析错误：{json_file_path}")
-
+print(token)
 # 配置信息
 endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
