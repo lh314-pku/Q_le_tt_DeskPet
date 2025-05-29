@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
 from chat.prompt import PROMPT_STYLE
+from chat.ai_assistant import set_token
 
 class SettingsManager(QWidget):
     def __init__(self, window):
@@ -251,6 +252,7 @@ class SettingsManager(QWidget):
         if api_key.strip():
             self.settings_data["api_key"] = api_key
             self.save_settings()
+            set_token(api_key)
             print(f"API Key saved: {api_key}")
 
     def set_prompt(self, prompt_text):
