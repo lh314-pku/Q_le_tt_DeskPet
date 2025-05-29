@@ -16,11 +16,7 @@ HISTORY_FILE = "chat_history.json" # 聊天历史文件
 # # 构造目标 JSON 文件路径 (上一级文件夹中的 data/config.json)
 # json_file_path = os.path.join(current_dir, '..','settings.json')
 
-token = "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"  # API 密钥
-def set_token(new_token):
-    global token
-    token = new_token
-    print(token)
+token = "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"  # API 密钥
 # 配置信息
 endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
@@ -32,6 +28,23 @@ client = OpenAI(
     base_url=endpoint,
     api_key=token,
 )
+# with open(json_file_path, 'r', encoding='utf-8') as f:
+#     data = json.load(f)
+#     token = data["api_key"]
+#     print(token)
+
+def set_token(new_token):
+    global token
+    token = new_token
+    print(token)
+    global client
+    client = OpenAI(
+        base_url=endpoint,
+        api_key=get_token(),
+    )
+
+def get_token():
+    return token
 
 conversation_history = [{
     "role": "system",
