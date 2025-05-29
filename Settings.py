@@ -155,6 +155,7 @@ class SettingsManager(QWidget):
             label.setFont(self.font)
             api_text_edit = QTextEdit(self)
             api_text_edit.setPlaceholderText("Enter your API key here...")
+            api_text_edit.setPlainText(self.settings_data["api_key"])
             api_text_edit.setFont(self.font)
             save_api_button = QPushButton("Save API Key", self)
             save_api_button.clicked.connect(lambda: self.set_API(api_text_edit.toPlainText()))

@@ -3,6 +3,7 @@ from PyQt6.QtCore import QTimer, QPoint, QPointF, Qt
 from PyQt6.QtWidgets import QMenu, QColorDialog, QSystemTrayIcon, QApplication
 from Settings import SettingsManager  # 引入新的设置管理器
 import random
+import json
 
 class ActionManager:
     def __init__(self, window):
@@ -11,9 +12,16 @@ class ActionManager:
         :param window: 传入主窗口实例，用于操作主窗口的方法
         """
         self.window = window
+        self.config_file = "settings.json"
         self.auto_move_enabled = True  # 临时值
         self.min_interval = 3000
         self.max_interval = 8000
+        # 从配置文件中加载
+        with open(self.config_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            self.auto_move_enabled = data["auto_move"]
+            self.min_interval = data["min_interval"]
+            self.max_interval = data["max_interval"]
 
         self.tray_icon = None  # 初始化托盘图标变量
         self.direction = QPoint(1, 0)  # 初始方向
