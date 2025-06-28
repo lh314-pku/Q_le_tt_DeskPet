@@ -5,12 +5,28 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QGraphicsColorize
 from Action import ActionManager
 from chat.launch_ai import ChatWindow
 from throw_mouse import MouseThrower
+import os
+
+def resource_path(relative_path):
+    """ 解决打包后资源路径问题 """
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# 使用示例（加载UI文件）
+# ui_path = resource_path("MainWin.ui")
+# uic.loadUi(ui_path, self)
+
+# 使用示例（加载GIF）
+# gif_path = resource_path("src/walk_left.gif")
 
 class MyMainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MyMainWindow, self).__init__(parent)
         self.initUI()
-        self.setWindowIcon(QIcon("./src/stickpet.ico"))
+        self.setWindowIcon(QIcon(resource_path("./src/stickpet.ico")))
         self.setWindowTitle("My Application")  # 设置窗口标题
 
         self.velocity_history = []  # 存储鼠标移动速度历史记录（时间戳，位置）

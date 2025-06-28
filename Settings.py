@@ -10,6 +10,22 @@ from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
 from chat.prompt import PROMPT_STYLE
 from chat.ai_assistant import set_token
+import sys
+
+def resource_path(relative_path):
+    """ 解决打包后资源路径问题 """
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# 使用示例（加载UI文件）
+# ui_path = resource_path("MainWin.ui")
+# uic.loadUi(ui_path, self)
+
+# 使用示例（加载GIF）
+# gif_path = resource_path("src/walk_left.gif")
 
 class SettingsManager(QWidget):
     def __init__(self, window):
@@ -36,7 +52,7 @@ class SettingsManager(QWidget):
         # 窗口设置
         self.setWindowTitle("Settings")
         self.setFixedSize(800, 600)
-        self.setWindowIcon(QtGui.QIcon("./src/settings.ico"))
+        self.setWindowIcon(QtGui.QIcon(resource_path("./src/settings.ico")))
 
         # 主布局
         self.layout = QHBoxLayout(self)

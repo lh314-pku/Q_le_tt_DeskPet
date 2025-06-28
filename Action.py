@@ -4,6 +4,24 @@ from PyQt6.QtWidgets import QMenu, QColorDialog, QSystemTrayIcon, QApplication
 from Settings import SettingsManager  # 引入新的设置管理器
 import random
 import json
+import os
+import sys
+
+def resource_path(relative_path):
+    """ 解决打包后资源路径问题 """
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# 使用示例（加载UI文件）
+# ui_path = resource_path("MainWin.ui")
+# uic.loadUi(ui_path, self)
+
+# 使用示例（加载GIF）
+# gif_path = resource_path("src/walk_left.gif")
+
 
 class ActionManager:
     def __init__(self, window):
@@ -60,22 +78,22 @@ class ActionManager:
 
         # 封装动作与 GIF 的映射关系以及动画时长
         self.actions_config = { # 这些动作会显示在右键菜单
-            "Walk_right": {"gif": "./src/walk_right.gif", "duration": 5000},
-            "Walk_left": {"gif": "./src/walk_left.gif", "duration": 5000},
-            "Run": {"gif": "./src/run.gif", "duration": 5000},
-            "Climb_up": {"gif": "./src/climb_up.gif", "duration": 5000},
-            "Climb_down": {"gif": "./src/climb_down.gif", "duration": 5000},
+            "Walk_right": {"gif": resource_path("./src/walk_right.gif"), "duration": 5000},
+            "Walk_left": {"gif": resource_path("./src/walk_left.gif"), "duration": 5000},
+            "Run": {"gif": resource_path("./src/run.gif"), "duration": 5000},
+            "Climb_up": {"gif": resource_path("./src/climb_up.gif"), "duration": 5000},
+            "Climb_down": {"gif": resource_path("./src/climb_down.gif"), "duration": 5000},
         }
         self.no_menu_actions_config = { # 这些动作不会显示在右键菜单
-            "Hit": {"gif": "./src/hit.gif", "duration": 500},
-            "Drag": {"gif": "./src/drag.gif", "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
-            "Drag_over": {"gif": "./src/drag_over.gif", "duration": 1000}, # 拖动结束的跌落动作。注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
-            "Thrown": {"gif": "./src/thrown.gif", "duration": 0},
-            "Throw_mouse": {"gif": "./src/throw.gif", "duration": 800} # 😊😊
+            "Hit": {"gif": resource_path("./src/hit.gif"), "duration": 500},
+            "Drag": {"gif": resource_path("./src/drag.gif"), "duration": 0}, # duration设为0表示动作一直持续到下一个动作发生
+            "Drag_over": {"gif": resource_path("./src/drag_over.gif"), "duration": 1000}, # 拖动结束的跌落动作。注意，这个动作不能依赖【gif循环播放】，因此duration需要根据实际gif时长设置。
+            "Thrown": {"gif": resource_path("./src/thrown.gif"), "duration": 0},
+            "Throw_mouse": {"gif": resource_path("./src/throw.gif"), "duration": 800} # 😊😊
         }
 
-        self.default_gif_path = "./src/default.gif"  # 默认待机动画路径
-        self.talk_gif_path = "./src/talk.gif"  # Talk 动画路径
+        self.default_gif_path = resource_path("./src/default.gif")  # 默认待机动画路径
+        self.talk_gif_path = resource_path("./src/talk.gif")  # Talk 动画路径
 
         self.throw_speed = QPointF(0, 0)  # 当前抛出速度
         self.gravity = self.window.gravity
